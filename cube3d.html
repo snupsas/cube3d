@@ -1,68 +1,175 @@
 <!DOCTYPE html>
 <html>
   <body>
-    <canvas id="idCubeCanvas" width="500" height="500" style="border:1px solid #d3d3d3;"></canvas>
+    <canvas id="idCubeCanvas" width="500" height="500" style="position: fixed; top: calc(50% - 250px); left: calc(50% - 250px);"></canvas>
 
     <script>
-      var xOff = -100;
-      var yOff = -100;
-      var zOff = 100;
-      var edgeLen = 200;
+      var xOff = -5;
+      var yOff = -5;
+      var zOff = 10;
+      var edgeLen = 10;
 
       var cube =
       [
-        [0 + xOff, 0 + yOff, 0 + zOff],
-        [0 + xOff + edgeLen, 0 + yOff, 0 + zOff],
-        [0 + xOff + edgeLen, 0 + yOff + edgeLen, 0 + zOff],
-        [0 + xOff, 0 + yOff + edgeLen, 0 + zOff],
+        [xOff, yOff, zOff],
+        [xOff + edgeLen, yOff, zOff],
+        [xOff + edgeLen, yOff + edgeLen, zOff],
+        [xOff, yOff + edgeLen, zOff],
 
-        [0 + xOff, 0 + yOff, 0 + zOff + edgeLen],
-        [0 + xOff + edgeLen, 0 + yOff, 0 + zOff + edgeLen],
-        [0 + xOff + edgeLen, 0 + yOff + edgeLen, 0 + zOff + edgeLen],
-        [0 + xOff, 0 + yOff + edgeLen, 0 + zOff + edgeLen],
+        [xOff, yOff, zOff + edgeLen],
+        [xOff + edgeLen, yOff, zOff + edgeLen],
+        [xOff + edgeLen, yOff + edgeLen, zOff + edgeLen],
+        [xOff, yOff + edgeLen, zOff + edgeLen],
       ];
 
-      var viewPlaneDistance = 50;
-      var cube2d = [];
-      for (var i = 0; i < cube.length; i++) {
-        var x = cube[i][0] * viewPlaneDistance / cube[i][2] + 250;
-        var y = cube[i][1] * viewPlaneDistance / cube[i][2] + 250;
-        cube2d.push([x, y]);
+      var axis = [
+        [xOff, yOff, zOff],
+        [xOff + edgeLen, yOff ,zOff],
+        [xOff, yOff + edgeLen, zOff],
+        [xOff, yOff, zOff + edgeLen]
+      ];
+
+      //startRotation();
+      var myVar = setInterval(startRotation, 17);
+
+      function startRotation(){
+          cube = rotate(cube, 0.3, 0.7, 0.1);
+          var cube2d = calculate2dView(cube);
+          var axis2d = calculate2dView(axis);
+
+          plot(cube2d);
+          plotAxis(axis2d);
+      };
+
+
+      // Perspective Transformation
+      //  x' = x * (d/z),
+      //  y' = y * (d/z),
+      //  z' = z
+      //  d - distance to viewplane
+      function calculate2dView(cube){
+        var viewPlaneDistance = 300;
+        var cube2d = [];
+        for (var i = 0; i < cube.length; i++) {
+          var x = cube[i][0] * viewPlaneDistance / cube[i][2] + 250;
+          var y = cube[i][1] * viewPlaneDistance / cube[i][2] + 250;
+          cube2d[i] = [x,y];
+        }
+        return cube2d;
+      };
+
+      function rotate(obj, xAxisAngle, yAxisAngle, zAxisAngle){
+        var sinX = calcSin(xAxisAngle);
+        var cosX = calcCos(xAxisAngle);
+
+        var sinY = calcSin(yAxisAngle);
+        var cosY = calcCos(yAxisAngle);
+
+        var sinZ = calcSin(zAxisAngle);
+        var cosZ = calcCos(zAxisAngle);
+
+        for (var i = 0; i < obj.length; i++) {
+          // rotate z axis
+          var rz_x = obj[i][0] - xOff - edgeLen/2;
+          var rz_y = obj[i][1] - yOff - edgeLen/2;
+
+          var rz_tx = rz_x * cosZ - rz_y * sinZ;
+          var rz_ty = rz_x * sinZ + rz_y * cosZ;
+
+          obj[i][0] = rz_tx + xOff + edgeLen/2;
+          obj[i][1] = rz_ty + yOff + edgeLen/2;
+
+          // rotate y axis
+          var ry_x = obj[i][0] - xOff - edgeLen/2;
+          var ry_z = obj[i][2] - zOff - edgeLen/2;
+
+          var ry_tx = ry_x * cosY - ry_z * sinY;
+          var ry_tz = ry_x * sinY + ry_z * cosY;
+
+          obj[i][0] = ry_tx + xOff + edgeLen/2;
+          obj[i][2] = ry_tz + zOff + edgeLen/2;
+
+          // rotate x axis
+          var rx_y = obj[i][1] - yOff - edgeLen/2;
+          var rx_z = obj[i][2] - zOff - edgeLen/2;
+
+          var rx_ty = rx_y * cosX - rx_z * sinX;
+          var rx_tz = rx_y * sinX + rx_z * cosX;
+
+          obj[i][1] = rx_ty + yOff + edgeLen/2;
+          obj[i][2] = rx_tz + zOff + edgeLen/2;
+        }
+        return obj;
       }
 
-      var c = document.getElementById("idCubeCanvas");
-      var ctx = c.getContext("2d");
-      ctx.beginPath();
+      function calcCos(angle){
+        return Math.cos(Math.PI * angle / 180);
+      };
 
-      ctx.moveTo(cube2d[0][0], cube2d[0][1]);
-      ctx.lineTo(cube2d[1][0], cube2d[1][1]);
-      ctx.moveTo(cube2d[1][0], cube2d[1][1]);
-      ctx.lineTo(cube2d[2][0], cube2d[2][1]);
-      ctx.moveTo(cube2d[2][0], cube2d[2][1]);
-      ctx.lineTo(cube2d[3][0], cube2d[3][1]);
-      ctx.moveTo(cube2d[3][0], cube2d[3][1]);
-      ctx.lineTo(cube2d[0][0], cube2d[0][1]);
+      function calcSin(angle){
+        return Math.sin(Math.PI * angle / 180);
+      };
 
-      ctx.moveTo(cube2d[4][0], cube2d[4][1]);
-      ctx.lineTo(cube2d[5][0], cube2d[5][1]);
-      ctx.moveTo(cube2d[5][0], cube2d[5][1]);
-      ctx.lineTo(cube2d[6][0], cube2d[6][1]);
-      ctx.moveTo(cube2d[6][0], cube2d[6][1]);
-      ctx.lineTo(cube2d[7][0], cube2d[7][1]);
-      ctx.moveTo(cube2d[7][0], cube2d[7][1]);
-      ctx.lineTo(cube2d[4][0], cube2d[4][1]);
+      function plotAxis(axis){
+        var c = document.getElementById("idCubeCanvas");
+        var ctx = c.getContext("2d");
+        ctx.font = "14px Arial";
+        ctx.beginPath();
+        ctx.moveTo(axis[0][0], axis[0][1]);
+        ctx.lineTo(axis[1][0], axis[1][1]);
+        ctx.fillText("X",axis[1][0], axis[1][1]);
+        ctx.strokeStyle = "green";
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(axis[0][0], axis[0][1]);
+        ctx.lineTo(axis[2][0], axis[2][1]);
+        ctx.fillText("Y",axis[2][0], axis[2][1]);
+        ctx.strokeStyle = "red";
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(axis[0][0], axis[0][1]);
+        ctx.lineTo(axis[3][0], axis[3][1]);
+        ctx.fillText("Z",axis[3][0], axis[3][1]);
+        ctx.strokeStyle = "blue";
+        ctx.stroke();
+      };
 
-      ctx.moveTo(cube2d[0][0], cube2d[0][1]);
-      ctx.lineTo(cube2d[4][0], cube2d[4][1]);
-      ctx.moveTo(cube2d[1][0], cube2d[1][1]);
-      ctx.lineTo(cube2d[5][0], cube2d[5][1]);
-      ctx.moveTo(cube2d[2][0], cube2d[2][1]);
-      ctx.lineTo(cube2d[6][0], cube2d[6][1]);
-      ctx.moveTo(cube2d[3][0], cube2d[3][1]);
-      ctx.lineTo(cube2d[7][0], cube2d[7][1]);
+      function plot(object2d){
+        var c = document.getElementById("idCubeCanvas");
+        var ctx = c.getContext("2d");
+        ctx.clearRect(0, 0, c.width, c.height);
+        ctx.beginPath();
 
+        ctx.moveTo(object2d[0][0], object2d[0][1]);
+        ctx.lineTo(object2d[1][0], object2d[1][1]);
+        ctx.moveTo(object2d[1][0], object2d[1][1]);
+        ctx.lineTo(object2d[2][0], object2d[2][1]);
+        ctx.moveTo(object2d[2][0], object2d[2][1]);
+        ctx.lineTo(object2d[3][0], object2d[3][1]);
+        ctx.moveTo(object2d[3][0], object2d[3][1]);
+        ctx.lineTo(object2d[0][0], object2d[0][1]);
 
-      ctx.stroke();
+        ctx.moveTo(object2d[4][0], object2d[4][1]);
+        ctx.lineTo(object2d[5][0], object2d[5][1]);
+        ctx.moveTo(object2d[5][0], object2d[5][1]);
+        ctx.lineTo(object2d[6][0], object2d[6][1]);
+        ctx.moveTo(object2d[6][0], object2d[6][1]);
+        ctx.lineTo(object2d[7][0], object2d[7][1]);
+        ctx.moveTo(object2d[7][0], object2d[7][1]);
+        ctx.lineTo(object2d[4][0], object2d[4][1]);
+
+        ctx.moveTo(object2d[0][0], object2d[0][1]);
+        ctx.lineTo(object2d[4][0], object2d[4][1]);
+        ctx.moveTo(object2d[1][0], object2d[1][1]);
+        ctx.lineTo(object2d[5][0], object2d[5][1]);
+        ctx.moveTo(object2d[2][0], object2d[2][1]);
+        ctx.lineTo(object2d[6][0], object2d[6][1]);
+        ctx.moveTo(object2d[3][0], object2d[3][1]);
+        ctx.lineTo(object2d[7][0], object2d[7][1]);
+
+        ctx.stroke();
+      };
+
     </script>
 
   </body>
